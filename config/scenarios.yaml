@@ -1,0 +1,52 @@
+# scenarios.yaml - Definitia scenariilor experimentale
+#   - Atacul si mitigarea nu ruleaza simultan, sunt scenarii separat
+#   - Operatorul selecteaza scenariul, iar controllerul decide mitigarea DOAR
+#     cand controller_mode == enforce
+#   - Pentru grafice, durata e fixa si identica intre repetari
+#   - Comparatiile (normal / atac / mitigare) folosesc aceeasi topologie,
+#     rata, durata si acelasi trafic legitim.
+# 
+
+# --- SYN flood
+normal_syn:
+  family: syn
+  attack: none
+  controller_mode: monitor_only
+  duration_s: 60
+  expect_service_degraded: false
+
+syn_attack:
+  family: syn
+  attack: syn_flood
+  controller_mode: monitor_only    # controllerul vede si alerteaza, dar NU blocheaza
+  duration_s: 60
+  expect_service_degraded: true
+
+syn_mitigated:
+  family: syn
+  attack: syn_flood
+  controller_mode: enforce         # controllerul instaleaza regula de drop pe in_port
+  duration_s: 60
+  expect_service_degraded: false   # dupa mitigare, serviciul se recupereaza
+
+# --- ARP spoofing / MITM
+normal_arp:
+  family: arp
+  attack: none
+  controller_mode: monitor_only
+  duration_s: 30
+  expect_modified_messages: 0
+
+arp_attack:
+  family: arp
+  attack: arp_mitm
+  controller_mode: monitor_only    # ARP fals ajunge la victima -> MITM reusit
+  duration_s: 30
+  expect_modified_messages: 1
+
+arp_mitigated:
+  family: arp
+  attack: arp_mitm
+  controller_mode: enforce          # enforce activ INAINTE de atac; primul ARP fals blocat
+  duration_s: 30
+  expect_modified_messages: 0

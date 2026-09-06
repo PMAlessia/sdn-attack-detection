@@ -1,0 +1,39 @@
+# lab.yaml - Configuratia de incredere a laboratorului SDN
+# Acest fisier este UNICA sursa de adevar pentru identitatea hosturilor, deoarece
+# controllerul nu invata identitatea legitima din primul raspuns ARP (acel
+# raspuns ar putea proveni de la atacator), prin urmare o citeste de aici
+
+hosts:
+  h1: { ip: 10.0.0.1, mac: '00:00:00:00:00:01', switch_port: 1 }
+  h2: { ip: 10.0.0.2, mac: '00:00:00:00:00:02', switch_port: 2 }
+  h3: { ip: 10.0.0.3, mac: '00:00:00:00:00:03', switch_port: 3 }
+  h4: { ip: 10.0.0.4, mac: '00:00:00:00:00:04', switch_port: 4 }
+
+roles:
+  victim: h1        # server / tinta
+  legit_client: h2  # client legitim principal
+  attacker: h3      # atacator controlat (SYN flood SAU ARP MITM, niciodata simultan)
+  background: h4    # trafic legitim de fundal
+
+syn:
+  server_ip: 10.0.0.1
+  server_port: 8080
+
+arp:
+  server_ip: 10.0.0.1
+  server_port: 9000
+  original_payload: "STATUS=OK\n"
+  modified_payload: "STATUS=NO\n"
+
+syn_detection:
+  poll_interval_s: 1.0          # Δt: intervalul de citire a contoarelor de flow
+  syn_rate_threshold: 20.0     # DE CALIBRAT din rulari normale
+  consecutive_windows: 3        # alerta doar dupa N ferestre consecutive peste prag
+  use_tcp_flags_match: false    # implicit numaram tot TCP-ul catre h1:8080 per port
+
+mitigation:
+  hard_timeout_s: 60      # cat traieste regula de drop (durata scenariului + marja)
+  drop_priority: 200      # drop = prioritate maxima intre reguli
+  arp_gate_priority: 100  # ARP -> controller
+  count_priority: 50      # flow-urile de numarare SYN
+  forward_priority: 1     # forwarding L2 invatat
