@@ -139,9 +139,6 @@ mininet> h2 python3 experiments/tcp_client.py --run-id demo_run --label h2 --dur
 mininet> h3 python3 attacks/syn_flood.py --rate 500 --duration 60
 ```
 
-The step-by-step demonstration of both attacks (SYN flood and ARP MITM), in
-both `monitor_only` and `enforce` modes, is in
-**[`docs/RUNBOOK_DEMO.md`](docs/RUNBOOK_DEMO.md)**.
 
 ### Automated scenario runs (reproducible campaigns)
 
@@ -176,8 +173,6 @@ python3 analysis/syn_figures.py \
 This writes three figures (PNG + vector PDF) to `results/figures/final/`:
 `syn_rate_timeline_attack` (detection), `syn_rate_timeline_mitigated`
 (mitigation) and `client_service_timeline` (impact on legitimate clients).
-The ARP results are reported as a table plus the topology diagram
-(`docs/arp_mitm.drawio`).
 
 ---
 
@@ -217,10 +212,6 @@ sdn-attack-detection/
 │   ├── syn_figures.py      # SYN-flood figure generation (from real logs)
 │   └── style.py            # shared style (colorblind-safe palette, light background)
 ├── tests/                  # unit tests for the pure logic
-├── docs/
-│   ├── RUNBOOK_DEMO.md     # step-by-step demonstration guide
-│   ├── CHECKLIST.md        # pre-run checklist
-│   └── arp_mitm.drawio     # editable ARP MITM topology diagram
 ├── logs/raw/               # raw per-run logs (git-ignored)
 └── results/figures/        # final figures (PNG + PDF)
 ```
