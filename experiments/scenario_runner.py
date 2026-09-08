@@ -183,6 +183,8 @@ def main():
         time.sleep(3.0)
         print("[runner] pingall de validare:")
         net.pingAll()
+        if loss > 0:
+            raise RuntimeError(f"pingall a pierdut {loss}% - topologie invalida, opresc runul")
 
         if scn["family"] == "syn":
             run_syn(net, lab, scn, run_id, log_dir)

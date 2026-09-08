@@ -58,11 +58,16 @@ def _save(fig, out_dir, name):
 # 1) + 2)  SYN rate timeline (attack / mitigated)
 # --------------------------------------------------------------------------- #
 def fig_syn_timeline(run_dir, out_dir, out_name, title):
-    ev = M.load_events(run_dir)
+    # common time origin for the whole run, so this figure and the client
+    # figure share the same "time = 0" (F09: aligned axes across figures)
+    t0 = M.run_t0(run_dir)
+    ev = M.load_events(run_dir, t0=t0)
     ts = M.syn_rate_timeseries(ev)
     if ts.empty:
         print(f"  [skip] no SYN_RATE_SAMPLE in {run_dir}")
         return None
+    if t0 is None:
+        t0 = int(ev["t_monotonic_ns"].min())
     fig, ax = new_fig()
     host_color = {"h2": COLOR["h2"], "h3": COLOR["h3"], "h4": COLOR["h4"]}
     host_label = {"h2": "h2 (legit client)", "h3": "h3 (attacker)", "h4": "h4 (legit client)"}
@@ -76,7 +81,6 @@ def fig_syn_timeline(run_dir, out_dir, out_name, title):
         thr = float(alerts["threshold"].iloc[0])
         ax.axhline(thr, color=COLOR["threshold"], linestyle="--", linewidth=1.5,
                    label=f"alarm threshold = {thr:.0f} SYN/s")
-        t0 = ev["t_monotonic_ns"].min()
         for _, a in alerts.iterrows():
             ax.axvline(a["t_detected"] / 1e9 - t0 / 1e9,
                        color=COLOR["alert"], linestyle=":", linewidth=1.5)
@@ -84,7 +88,6 @@ def fig_syn_timeline(run_dir, out_dir, out_name, title):
 
     fm = ev[ev["event"] == "MITIGATION_FLOWMOD_SENT"] if "event" in ev else None
     if fm is not None and not fm.empty:
-        t0 = ev["t_monotonic_ns"].min()
         for _, r in fm.iterrows():
             ax.axvline(r["t_monotonic_ns"] / 1e9 - t0 / 1e9,
                        color=COLOR["flowmod"], linestyle="-.", linewidth=1.5)
@@ -101,7 +104,8 @@ def fig_syn_timeline(run_dir, out_dir, out_name, title):
 # 3)  Client service timeline (latency + success/fail)
 # --------------------------------------------------------------------------- #
 def fig_client_service(run_dir, out_dir):
-    cl = M.load_clients(run_dir)
+    # same common time origin as the SYN timeline of this run (F09)
+    cl = M.load_clients(run_dir, t0=M.run_t0(run_dir))
     if cl.empty:
         print(f"  [skip] no client logs in {run_dir}")
         return None

@@ -1,9 +1,24 @@
 """
 metrics.py - Citirea si prelucrarea logurilor experimentale in DataFrame-uri.
 
-REGULA DE INTEGRITATE: figurile se genereaza NUMAI din fisierele brute ale
-trialurilor. Nu se completeaza manual valori si nu se folosesc date sintetice.
-Acest modul doar CITESTE si prelucreaza ce a produs o rulare reala.
+REGULA DE INTEGRITATE (din documentatie): figurile se genereaza NUMAI din
+fisierele brute ale trialurilor. Nu se completeaza manual valori si nu se
+folosesc date sintetice drept rezultate. Acest modul doar CITESTE si prelucreaza
+ce a produs o rulare reala.
+
+Structura unui director de rulare (logs/raw/<run_id>/):
+    events.jsonl          - evenimentele controllerului (SYN_RATE_SAMPLE,
+                            SYN_FLOOD_ALERT, ARP_BINDING_VIOLATION,
+                            MITIGATION_FLOWMOD_SENT, MITIGATION_CONFIRMED, ...)
+    client_h2.csv         - client legitim principal (result, latency_ms)
+    client_h4.csv         - client de fundal
+    server_accepts.jsonl  - accept-uri pe serverul TCP (h1:8080)
+    message_server.jsonl  - mesaje receptionate (flag `modified`) pentru ARP
+    run_config.json       - scenariul si parametrii rularii
+
+Toate fisierele folosesc acelasi ceas monoton (time.monotonic_ns), comparabil
+intre procese pe acelasi kernel. Pentru ca graficele diferite ale ACELEIASI
+rulari sa aiba aceeasi origine de timp, foloseste run_t0() ca t0 comun.
 """
 from __future__ import annotations
 
@@ -32,15 +47,34 @@ def _read_jsonl(path: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def load_events(run_dir: str) -> pd.DataFrame:
+def run_t0(run_dir: str) -> Optional[int]:
+    """Momentul zero COMUN al unei rulari: cel mai mic t_monotonic_ns peste
+    events.jsonl si CSV-urile clientilor. Foloseste-l ca t0 pentru toate
+    graficele aceleiasi rulari, ca axa de timp sa fie aliniata intre ele."""
+    mins = []
+    ev = _read_jsonl(os.path.join(run_dir, "events.jsonl"))
+    if not ev.empty and "t_monotonic_ns" in ev:
+        mins.append(int(ev["t_monotonic_ns"].min()))
+    for name in os.listdir(run_dir) if os.path.isdir(run_dir) else []:
+        if name.startswith("client_") and name.endswith(".csv"):
+            try:
+                d = pd.read_csv(os.path.join(run_dir, name))
+                if "t_monotonic_ns" in d and len(d):
+                    mins.append(int(d["t_monotonic_ns"].min()))
+            except Exception:
+                pass
+    return min(mins) if mins else None
+
+
+def load_events(run_dir: str, t0: Optional[int] = None) -> pd.DataFrame:
     df = _read_jsonl(os.path.join(run_dir, "events.jsonl"))
     if not df.empty and "t_monotonic_ns" in df:
-        t0 = df["t_monotonic_ns"].min()
-        df["t_rel_s"] = (df["t_monotonic_ns"] - t0) / 1e9
+        base = t0 if t0 is not None else df["t_monotonic_ns"].min()
+        df["t_rel_s"] = (df["t_monotonic_ns"] - base) / 1e9
     return df
 
 
-def load_clients(run_dir: str) -> pd.DataFrame:
+def load_clients(run_dir: str, t0: Optional[int] = None) -> pd.DataFrame:
     frames = []
     for name in os.listdir(run_dir) if os.path.isdir(run_dir) else []:
         if name.startswith("client_") and name.endswith(".csv"):
@@ -53,8 +87,8 @@ def load_clients(run_dir: str) -> pd.DataFrame:
         return pd.DataFrame()
     df = pd.concat(frames, ignore_index=True)
     if "t_monotonic_ns" in df:
-        t0 = df["t_monotonic_ns"].min()
-        df["t_rel_s"] = (df["t_monotonic_ns"] - t0) / 1e9
+        base = t0 if t0 is not None else df["t_monotonic_ns"].min()
+        df["t_rel_s"] = (df["t_monotonic_ns"] - base) / 1e9
     df["ok"] = df["result"] == "success"
     return df
 
@@ -179,8 +213,13 @@ def aggregate(series: pd.Series) -> dict:
     mean = float(s.mean())
     std = float(s.std(ddof=1)) if n > 1 else 0.0
     sem = std / (n ** 0.5) if n > 0 else 0.0
-    t95 = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45,
-           7: 2.36, 8: 2.31, 9: 2.26, 10: 2.23}.get(n - 1, 1.96)
+    # aproximare 95% CI cu valori t-Student pentru n-1 grade de libertate.
+    t_table = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45,
+               7: 2.36, 8: 2.31, 9: 2.26, 10: 2.23, 11: 2.20, 12: 2.18,
+               13: 2.16, 14: 2.14, 15: 2.13, 16: 2.12, 17: 2.11, 18: 2.10,
+               19: 2.09, 20: 2.09, 21: 2.08, 22: 2.07, 23: 2.07, 24: 2.06,
+               25: 2.06, 26: 2.06, 27: 2.05, 28: 2.05, 29: 2.05, 30: 2.04}
+    t95 = t_table.get(n - 1, 1.96)
     return {
         "n": n, "mean": mean, "median": float(s.median()),
         "std": std, "sem": sem, "ci95": t95 * sem,
