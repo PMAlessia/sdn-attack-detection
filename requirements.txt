@@ -21,7 +21,6 @@ packaging==26.2
 pandas==2.0.3
 pbr==7.0.3
 pillow==10.4.0
-pkg_resources==0.0.0
 pyparsing==3.1.4
 python-dateutil==2.9.0.post0
 pytz==2026.3.post1
@@ -41,3 +40,4 @@ urllib3==2.2.3
 WebOb==1.8.11
 wrapt==2.0.1
 zipp==3.20.2
+pytest==7.4.4

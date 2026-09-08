@@ -20,6 +20,7 @@ import signal
 import subprocess
 import sys
 import time
+import re
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -138,6 +139,8 @@ def run_arp(net, lab, scn, run_id, log_dir):
         collectors.dump_ovs_flows(log_dir, "attack")
         h2.cmd(f"python3 experiments/message_client.py --run-id {run_id} --log-dir {log_dir}")
         time.sleep(duration - 4.0)
+    else:
+        time.sleep(max(0.0, duration - 2.0))
 
     collectors.snapshot_arp_state([h1, h2], log_dir, "recovery")
     collectors.dump_ovs_flows(log_dir, "recovery")
@@ -150,6 +153,8 @@ def main():
     ap.add_argument("--run-id", default=None)
     ap.add_argument("--rate", type=float, default=500.0)
     args = ap.parse_args()
+    if args.run_id and not re.fullmatch(r"[A-Za-z0-9_.-]+", args.run_id):
+        sys.exit("[EROARE] run_id invalid: doar litere, cifre, _ . -")
 
     scenarios = load_scenarios()
     if args.scenario not in scenarios:

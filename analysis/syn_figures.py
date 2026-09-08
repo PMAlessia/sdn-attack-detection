@@ -109,12 +109,16 @@ def fig_client_service(run_dir, out_dir):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8.0, 6.0), sharex=True)
     lab_color = {"h2": COLOR["h2"], "h4": COLOR["h4"]}
     labels = sorted(cl["label"].unique())
+    # robust y-limit computed up front; a few connections delayed to ~1 s are
+    # extreme outliers that would flatten the normal band, so they are hidden
+    succ_all = cl[cl["ok"]]
+    top = max(float(succ_all["latency_ms"].quantile(0.97)) * 1.4, 5.0) if len(succ_all) else 5.0
     for lab in labels:
         d = cl[(cl["label"] == lab) & (cl["ok"])].sort_values("t_rel_s")
         t = d["t_rel_s"].to_numpy(dtype=float)
         y = d["latency_ms"].to_numpy(dtype=float)
-        # break the line across gaps (e.g. the attack window has no successes),
-        # so we don't draw a misleading straight diagonal through it
+        y[y > top] = np.nan   # hide extreme outliers (no line shooting off-chart)
+        # break the line across gaps (e.g. the attack window has no successes)
         if len(t) > 1:
             cut = np.where(np.diff(t) > 3.0)[0] + 1
             if len(cut):
@@ -123,6 +127,7 @@ def fig_client_service(run_dir, out_dir):
         ax1.plot(t, y, marker="o", markersize=4,
                  linewidth=1.5, color=lab_color.get(lab, COLOR["latency"]),
                  label=f"{lab} (successful)")
+    ax1.set_ylim(0, top)
     ax1.set_ylabel("connect() latency [ms]")
     ax1.set_title("Impact on legitimate clients: connection failures during the attack")
     ax1.legend(loc="upper left")

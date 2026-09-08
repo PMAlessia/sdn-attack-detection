@@ -11,14 +11,7 @@ parameters, changing only whether the attack runs and the controller's mode.
 
 ## 1. Repository
 
-- **Source code repository:** `<REPOSITORY_URL>`  <!-- paste your repo URL here -->
-- The repository contains the **complete source code** (Python) and
-  configuration. Compiled/binary artifacts, raw run logs and generated figures
-  are **excluded** from version control (see `.gitignore`).
-- **Access for evaluation:** the repository is private. It will be **shared
-  internally with the project coordinator and the members of the evaluation
-  committee upon request.** To request access, contact the author with the
-  account (email / platform username) to be granted read access.
+- **Source code repository:** `https://github.com/PMAlessia/sdn-attack-detection`
 
 ---
 
@@ -31,11 +24,9 @@ parameters, changing only whether the attack runs and the controller's mode.
 | Attack scripts (Scapy) | `attacks/` |
 | Experiment harness (services, clients, automated runner) | `experiments/` |
 | Analysis and figure generation | `analysis/` |
-| Configuration (source of truth) | `config/lab.yaml`, `config/scenarios.yaml` |
+| Configuration | `config/lab.yaml`, `config/scenarios.yaml` |
 | Unit tests (logic independent of Mininet/Ryu) | `tests/` |
-| Demonstration runbook and pre-run checklist | `docs/` |
-| Final thesis figures (PNG for preview, PDF vector for the document) | `results/figures/final/` |
-| Editable topology diagram (draw.io) | `docs/arp_mitm.drawio` |
+| Final thesis figures | `results/figures/final/` |
 
 ---
 
@@ -50,17 +41,13 @@ Already provisioned in the project VM:
 Two Python environments are used deliberately:
 
 - a **virtual environment (`venv`)** for the Ryu controller, the Scapy attacks
-  and the analysis tools (Ryu, Scapy, PyYAML, pandas, matplotlib);
+  and the analysis/test tools (Ryu, Scapy, PyYAML, pandas, matplotlib, pytest);
 - the **system interpreter (`/usr/bin/python3`)** for Mininet, which is
   installed as a system package and is not available inside the venv.
 
 ---
 
-## 4. Build / compilation
-
-The application is written in **Python 3.8** and is interpreted, so there is no
-separate compilation step. "Building" the application means creating the virtual
-environment and installing the pinned dependencies:
+## 4. Build / installation
 
 ```bash
 git clone <REPOSITORY_URL> ~/sdn-attack-detection
@@ -69,42 +56,27 @@ cd ~/sdn-attack-detection
 python3 -m venv venv
 source venv/bin/activate
 
-# Build tools compatible with Ryu 4.34 MUST be installed first
-# (Ryu depends on pkg_resources / older setuptools):
+# Build tools compatible with Ryu 4.34 MUST be installed first:
 python -m pip install 'pip==23.3.2' 'setuptools==65.5.1' 'wheel==0.42.0'
 
 # Then the pinned runtime dependencies:
 python -m pip install -r requirements.txt
 ```
 
-`requirements.txt` pins every version for reproducibility (notably
-`eventlet==0.30.2`, the last release that still exposes the `ALREADY_HANDLED`
-constant Ryu 4.34 uses).
+Mininet is used through the **system** interpreter and is part of the VM image
+(not installed by the steps above).
 
-Mininet is used through the **system** interpreter and is not installed by the
-steps above; it is part of the VM image.
-
----
-
-## 5. Installation check
-
-With the virtual environment active:
+Installation check:
 
 ```bash
 python3 lab_config.py     # prints the 4 hosts and the scenarios
 ryu-manager --version     # ryu-manager 4.34
-sudo mn -c                # clean any leftover Mininet state
-```
-
-Optional — run the unit tests (pure logic, no Mininet/Ryu needed):
-
-```bash
-python3 -m pytest tests/          # or run the test files individually
+python -m pytest tests/   # 22 unit tests should pass
 ```
 
 ---
 
-## 6. Launching the application
+## 5. Launching the application
 
 The controller and the topology run in **separate terminals**, both from the
 project root. Always clean up **before** starting the controller, because
@@ -112,7 +84,7 @@ project root. Always clean up **before** starting the controller, because
 
 **Order:** `sudo mn -c` → start controller (Terminal A) → start topology (Terminal B).
 
-### Terminal A — SDN controller
+### Terminal A — SDN controller (needs the venv active)
 
 ```bash
 cd ~/sdn-attack-detection && source venv/bin/activate
@@ -122,7 +94,7 @@ SDN_MODE=monitor_only SDN_RUN_ID=demo_run \
   ryu-manager --ofp-tcp-listen-port 6653 controller/sdn_ids.py
 ```
 
-### Terminal B — Mininet topology
+### Terminal B — Mininet topology (system Python; do NOT activate the venv)
 
 ```bash
 cd ~/sdn-attack-detection
@@ -130,15 +102,26 @@ sudo python3 topologies/topo_lab.py
 mininet> pingall            # must be 0% dropped
 ```
 
-Then, from the `mininet>` prompt, start the target service, a legitimate client
-and (manually) an attack — for example a SYN flood:
+From the `mininet>` prompt, host scripts are launched with the venv interpreter
+so they find Scapy/PyYAML:
 
+**SYN flood**
 ```
-mininet> h1 python3 experiments/tcp_server.py --run-id demo_run &
-mininet> h2 python3 experiments/tcp_client.py --run-id demo_run --label h2 --duration 120 &
-mininet> h3 python3 attacks/syn_flood.py --rate 500 --duration 60
+mininet> h1 venv/bin/python3 experiments/tcp_server.py --run-id demo_run &
+mininet> h2 venv/bin/python3 experiments/tcp_client.py --run-id demo_run --label h2 --duration 120 &
+mininet> h3 venv/bin/python3 attacks/syn_flood.py --rate 300 --duration 30
 ```
 
+**ARP MITM (inline variant, no GUI)**
+```
+mininet> h1 venv/bin/python3 experiments/message_server.py --run-id demo_arp &
+mininet> h2 venv/bin/python3 experiments/message_client.py --run-id demo_arp    # baseline: message intact
+mininet> h3 venv/bin/python3 attacks/arp_mitm.py --duration 60 &
+mininet> h2 venv/bin/python3 experiments/message_client.py --run-id demo_arp    # under attack
+```
+
+In `monitor_only` the second message arrives modified (`STATUS=OK` → `STATUS=NO`);
+in `enforce` the first spoofed ARP is blocked and the message stays intact.
 
 ### Automated scenario runs (reproducible campaigns)
 
@@ -157,10 +140,9 @@ Every run writes its raw evidence to `logs/raw/<run_id>/`.
 
 ---
 
-## 7. Generating the thesis figures
+## 6. Generating the thesis figures
 
-Figures are produced **only from the raw run logs** (no synthetic values). The
-SYN-flood figures are generated with:
+Figures are produced **only from the raw run logs**:
 
 ```bash
 source venv/bin/activate
@@ -176,7 +158,7 @@ This writes three figures (PNG + vector PDF) to `results/figures/final/`:
 
 ---
 
-## 8. Repository structure
+## 7. Repository structure
 
 ```
 sdn-attack-detection/
@@ -211,26 +193,30 @@ sdn-attack-detection/
 │   ├── metrics.py          # log parsing -> DataFrames + statistics
 │   ├── syn_figures.py      # SYN-flood figure generation (from real logs)
 │   └── style.py            # shared style (colorblind-safe palette, light background)
-├── tests/                  # unit tests for the pure logic
+├── tests/                  # unit tests for the pure logic (pytest)
 ├── logs/raw/               # raw per-run logs (git-ignored)
 └── results/figures/        # final figures (PNG + PDF)
 ```
 
 ---
 
-## 9. Design notes (methodology chapter)
+## 8. Design notes (methodology)
 
 - **ARP detection** is deterministic (IP-MAC-port bindings from `lab.yaml`), not
   statistical: in a fixed topology, the contradiction "h3's port claims h1's IP"
   is direct evidence. `in_port` is the criterion that is robust against MAC
   spoofing.
-- **SYN detection** uses aggregate rules that count SYNs toward `h1:8080`
-  **per input port** (no `tcp_src`), so variable source ports do not create
-  thousands of flows. An alert requires the threshold to be exceeded over several
-  consecutive windows.
-- **Mitigation** is anchored on `in_port` (plus `arp_spa` for ARP), with a
-  `cookie` for selective removal and `BarrierRequest`/`Reply` to measure exactly
-  when Open vSwitch applied the rule.
-- **Thresholds** are measured from normal runs, not invented
-  (`metrics.suggest_threshold()`), and justified in the thesis.
-- **Figures** are generated exclusively from the raw run logs; no synthetic values.
+- **SYN detection** is volumetric/statistics-based: the controller counts, per
+  ingress port, TCP segments carrying the SYN flag and not the ACK flag (i.e.
+  connection-initiation segments) toward the protected service, via an aggregate
+  flow rule that matches on `tcp_flags`. Variable source ports therefore do not
+  create thousands of flows, and the reported *SYN rate* reflects genuine
+  connection attempts. An alert requires the threshold to be exceeded over
+  several consecutive windows.
+- **Threshold** was calibrated from normal runs (max observed SYN rate 2/s,
+  mean+4σ ≈ 5.07/s over 594 samples) and set to 20 SYN/s — an order of magnitude
+  above the normal maximum — for a 0% false-positive rate.
+- **Mitigation** is anchored on the attacker's ingress port (`in_port`, plus
+  `arp_spa` for ARP), i.e. source-port isolation, with a `cookie` for selective
+  removal and `BarrierRequest`/`Reply` to measure exactly when Open vSwitch
+  applied the rule.

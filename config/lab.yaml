@@ -27,9 +27,9 @@ arp:
 
 syn_detection:
   poll_interval_s: 1.0          # Δt: intervalul de citire a contoarelor de flow
-  syn_rate_threshold: 20.0     # DE CALIBRAT din rulari normale
+  syn_rate_threshold: 20.0     
   consecutive_windows: 3        # alerta doar dupa N ferestre consecutive peste prag
-  use_tcp_flags_match: false    # implicit numaram tot TCP-ul catre h1:8080 per port
+  use_tcp_flags_match: true    # implicit numaram tot TCP-ul catre h1:8080 per port
 
 mitigation:
   hard_timeout_s: 60      # cat traieste regula de drop (durata scenariului + marja)
