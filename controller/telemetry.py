@@ -36,6 +36,7 @@ class TelemetryPoller:
 
     def stop(self):
         self._stop = True
+        self._thread = None
 
     def _loop(self):
         while not self._stop:

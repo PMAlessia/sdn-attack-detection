@@ -142,9 +142,15 @@ class SdnIds(app_manager.RyuApp):
         t_detected = EventLogger.now_monotonic_ns()
 
         if verdict.is_valid:
-            self.forwarding.learn(datapath.id, eth.src, in_port)
+            # Invatam maparea MAC->port DOAR pentru ARP complet validat
+            # (spa se potriveste cu un binding de incredere, cu MAC si port corecte).
+            # NU invatam din probe ARP (spa=0.0.0.0): sursa lor nu e verificata
+            # fata de tabela de binding, deci o proba falsificata ar putea altfel
+            # otravi tabela de forwarding L2.
+            if verdict.reason == ag.VALID:
+                self.forwarding.learn(datapath.id, eth.src, in_port)
             self.ev.log("ARP_VALID", in_port=in_port, arp_spa=a.src_ip,
-                        arp_sha=eth.src, arp_op=a.opcode)
+                        arp_sha=eth.src, arp_op=a.opcode, reason=verdict.reason)
             self._arp_flood(datapath, in_port, msg)
             return
 

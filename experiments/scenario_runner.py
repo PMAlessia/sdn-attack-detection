@@ -182,7 +182,7 @@ def main():
         net, lab = build_net()
         time.sleep(3.0)
         print("[runner] pingall de validare:")
-        net.pingAll()
+        loss = net.pingAll()
         if loss > 0:
             raise RuntimeError(f"pingall a pierdut {loss}% - topologie invalida, opresc runul")
 
