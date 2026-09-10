@@ -7,7 +7,6 @@ La fiecare interval, h3 trimite doua afirmatii ARP false (op=2, reply):
   * catre h1:  "10.0.0.2 (h2) este la MAC_h3"
 Astfel, cadrele dintre h1 si h2 sunt adresate Ethernet catre h3.
 
-Se folosesc EXCLUSIV IP-urile laboratorului. Perioada este DE CALIBRAT.
 """
 from __future__ import annotations
 

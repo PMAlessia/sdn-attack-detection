@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-syn_figures.py - The SYN-flood figures for the thesis, in ONE script.
-
-Generates the three figures we keep (all in English, all from REAL run logs):
+syn_figures.py
 
   1) syn_rate_timeline_attack     - attack WITHOUT mitigation (monitor_only):
                                     the attacker's SYN rate crosses the alarm
@@ -54,9 +52,7 @@ def _save(fig, out_dir, name):
     return png
 
 
-# --------------------------------------------------------------------------- #
 # 1) + 2)  SYN rate timeline (attack / mitigated)
-# --------------------------------------------------------------------------- #
 def fig_syn_timeline(run_dir, out_dir, out_name, title):
     # common time origin for the whole run, so this figure and the client
     # figure share the same "time = 0" (F09: aligned axes across figures)
@@ -100,9 +96,7 @@ def fig_syn_timeline(run_dir, out_dir, out_name, title):
     return _save(fig, out_dir, out_name)
 
 
-# --------------------------------------------------------------------------- #
 # 3)  Client service timeline (latency + success/fail)
-# --------------------------------------------------------------------------- #
 def fig_client_service(run_dir, out_dir):
     # same common time origin as the SYN timeline of this run (F09)
     cl = M.load_clients(run_dir, t0=M.run_t0(run_dir))
@@ -119,8 +113,8 @@ def fig_client_service(run_dir, out_dir):
     top = max(float(succ_all["latency_ms"].quantile(0.97)) * 1.4, 5.0) if len(succ_all) else 5.0
     for lab in labels:
         d = cl[(cl["label"] == lab) & (cl["ok"])].sort_values("t_rel_s")
-        t = d["t_rel_s"].to_numpy(dtype=float)
-        y = d["latency_ms"].to_numpy(dtype=float)
+        t = d["t_rel_s"].to_numpy(dtype=float, copy=True)
+        y = d["latency_ms"].to_numpy(dtype=float, copy=True)
         y[y > top] = np.nan   # hide extreme outliers (no line shooting off-chart)
         # break the line across gaps (e.g. the attack window has no successes)
         if len(t) > 1:
@@ -149,9 +143,7 @@ def fig_client_service(run_dir, out_dir):
     return _save(fig, out_dir, "client_service_timeline")
 
 
-# --------------------------------------------------------------------------- #
 # CLI
-# --------------------------------------------------------------------------- #
 def main():
     ap = argparse.ArgumentParser(description="SYN-flood thesis figures (real logs only)")
     ap.add_argument("--attack-run", default="",

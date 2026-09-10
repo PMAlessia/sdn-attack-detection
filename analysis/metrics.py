@@ -2,9 +2,7 @@
 metrics.py - Citirea si prelucrarea logurilor experimentale in DataFrame-uri.
 
 REGULA DE INTEGRITATE (din documentatie): figurile se genereaza NUMAI din
-fisierele brute ale trialurilor. Nu se completeaza manual valori si nu se
-folosesc date sintetice drept rezultate. Acest modul doar CITESTE si prelucreaza
-ce a produs o rulare reala.
+fisierele brute ale trialurilor.
 
 Structura unui director de rulare (logs/raw/<run_id>/):
     events.jsonl          - evenimentele controllerului (SYN_RATE_SAMPLE,

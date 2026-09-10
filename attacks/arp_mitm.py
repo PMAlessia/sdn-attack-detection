@@ -96,7 +96,7 @@ def main():
 
     set_ip_forward_off()
 
-    # --- descoperirea si verificarea starii legitime ---
+    # descoperirea si verificarea starii legitime
     if not args.skip_verify:
         print("[info] descopar MAC-urile reale ale h1 si h2 (inainte de poisoning)...")
         mac_h1 = resolve_once(h1.ip, args.iface)

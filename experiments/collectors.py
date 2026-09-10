@@ -3,8 +3,7 @@
 collectors.py - Colectarea dovezilor de stare (snapshot-uri) intr-o rulare.
 
 Functii care ruleaza comenzi de sistem si salveaza iesirea in directorul rularii,
-cu eticheta de faza (before / during / after). Folosite de scenario_runner, dar
-pot fi apelate si manual in timpul demo-ului.
+cu eticheta de faza (before / during / after). Folosite de scenario_runner
 
 Snapshot-uri utile:
   * ip neigh          -> starea cache-ului ARP (dovada otravirii)

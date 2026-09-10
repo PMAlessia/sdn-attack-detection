@@ -1,12 +1,6 @@
 """
-style.py - Stil comun pentru figurile lucrarii (matplotlib).
+style.py
 
-Principii (template facultate + bune practici de vizualizare):
-  * fundal DESCHIS (template-ul interzice dark mode);
-  * paleta categoriala colorblind-safe (Okabe-Ito), atribuita in ordine fixa
-    entitatilor (nu ciclata dupa rang);
-  * marcaje subtiri, grid discret, titlu + unitati + legenda pe fiecare figura;
-  * fiecare figura de agregare indica numarul de repetari (n).
 """
 from __future__ import annotations
 

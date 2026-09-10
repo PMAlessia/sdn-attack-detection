@@ -6,7 +6,7 @@ Echivalentul reproductibil al lui `nc -l 9000`, dar cu logare: asculta pe
 h1:9000, primeste o linie de text si o scrie in log cu timestamp. Comparand
 mesajul receptionat cu cel asteptat se obtine metrica "mesaje modificate".
 
-Pentru demonstratia VIZUALA se poate folosi direct netcat (vezi RUNBOOK).
+Pentru demonstratia VIZUALA se poate folosi direct netcat.
 Acest script e pentru rulari reproductibile/grafice.
 
 Rulare (in namespace-ul h1):

@@ -3,8 +3,7 @@
 scenario_runner.py - Rulare AUTOMATA a unui scenariu (pentru grafice reproductibile).
 
 Scop: campania experimentala (figurile din lucrare), unde durata e FIXA si
-identica intre repetari, iar oprirea e automata. Pentru demo-ul in fata comisiei
-foloseste ghidul manual: docs/RUNBOOK_DEMO.md.
+identica intre repetari, iar oprirea e automata.
 
 NECESITA root (Mininet). NU rula in acelasi timp cu o topologie pornita manual.
 
